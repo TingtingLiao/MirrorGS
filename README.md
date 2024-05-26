@@ -1,4 +1,4 @@
-## Introduction
+## Mirror3DGS 
 An unofficial implementation of [**Mirror3DGS**](https://arxiv.org/pdf/2404.01168).  
   
 ## Install
@@ -27,14 +27,18 @@ pip install -e submodules/simple-knn
 
 ## Usage 
 ```bash 
- 
+python train.py -s data/colmap/synthetic/livingroom/
+
+# convert gs to mesh
+python train.py -s data/colmap/synthetic/livingroom/ 
 ```
- 
+
+## Implementation Notes
+
+### Using colmap 
 
 ## Acknowledgement 
 Special thanks to the projects and their contributors:
-* [DreamScene360](https://dreamscene360.github.io/)
-* [Diffusion360](https://github.com/ArcherFMY/SD-T2I-360PanoImage)
-* [360monodepth](https://github.com/manurare/360monodepth)
-* [2DGS](https://github.com/hbb1/2d-gaussian-splatting)
-* [Equirec2Perspec](https://github.com/fuenwang/Equirec2Perspec)
+* [Mirror3DGS](https://arxiv.org/pdf/2404.01168) 
+* [MirrorGaussian](https://mirror-gaussian.github.io/) 
+ 
