@@ -1,7 +1,10 @@
 ## MirrorGS 
-An unofficial implementation of [**Mirror3DGS:Incorporating Mirror Reflections
+An unofficial implementation of [**Mirror3DGS: Incorporating Mirror Reflections
 into 3D Gaussian Splatting**](https://arxiv.org/pdf/2404.01168).  
-  
+
+https://github.com/TingtingLiao/MirrorGS/assets/45743512/198619c0-9712-4bab-ac95-96b2714c14ef
+
+
 ## Install
 ```bash
 git clone --recursive https://github.com/TingtingLiao/MirrorGS.git 
