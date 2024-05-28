@@ -4,6 +4,8 @@ into 3D Gaussian Splatting**](https://arxiv.org/pdf/2404.01168).
 
 https://github.com/TingtingLiao/MirrorGS/assets/45743512/5ca37c89-4dab-4d8b-bfb7-1d49692957f0
 
+https://github.com/TingtingLiao/MirrorGS/assets/45743512/104828a4-c1e7-4df2-b3d2-ecaccd6fe297
+
 
 ## Install
 ```bash
@@ -24,11 +26,9 @@ pip install -U xformers --index-url https://download.pytorch.org/whl/cu121
 pip install -e submodules/diff-surfel-rasterization 
 pip install -e submodules/simple-knn 
 ```
-
-## TODOs  
-- remove noise of the mirror plane using RANSAC
-- add depth supervision 
-
+ 
+<!-- ## Data
+We use the [COLMAP](https://colmap.github.io/) -->
 
 ## Usage 
 ```bash   
