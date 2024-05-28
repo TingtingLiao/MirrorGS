@@ -2,7 +2,7 @@
 An unofficial implementation of [**Mirror3DGS: Incorporating Mirror Reflections
 into 3D Gaussian Splatting**](https://arxiv.org/pdf/2404.01168).  
 
-https://github.com/TingtingLiao/MirrorGS/assets/45743512/198619c0-9712-4bab-ac95-96b2714c14ef
+https://github.com/TingtingLiao/MirrorGS/assets/45743512/5ca37c89-4dab-4d8b-bfb7-1d49692957f0
 
 
 ## Install
@@ -32,10 +32,10 @@ pip install -e submodules/simple-knn
 
 ## Usage 
 ```bash   
-python train.py -s data/colmap/real/discussion_room/ --eval  --resolution 4 --start_checkpoint ./output/580d40fc-5/point_cloud/iteration_30000/point_cloud.ply
-
-# convert gs to mesh 
-python render.py -m ./output/d9810cb3-e -s data/colmap/real/discussion_room/ --eval  --skip_mesh --render_path --resolution 4
+python train.py -s data/colmap/real/discussion_room/  --resolution 4 --iterations 20000
+  
+# validation 
+python render.py -m ./output/ba4124ac-e -s data/colmap/real/discussion_room/ --skip_mesh --render_path --resolution 4
 ```
 
 ## Implementation Notes
@@ -60,3 +60,4 @@ Special thanks to the projects and their contributors:
 * [Mirror3DGS](https://arxiv.org/pdf/2404.01168) 
 * [MirrorGaussian](https://mirror-gaussian.github.io/) 
 * [2DGS](https://github.com/hbb1/2d-gaussian-splatting)
+* [pyRANSAC-3D](https://github.com/leomariga/pyRANSAC-3D)
