@@ -9,8 +9,7 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 import trimesh 
-import torch
-import pyransac3d as pyrsc
+import torch 
 import numpy as np
 from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation
 from torch import nn
@@ -21,6 +20,7 @@ from utils.sh_utils import RGB2SH
 from simple_knn._C import distCUDA2
 from utils.graphics_utils import BasicPointCloud
 from utils.general_utils import strip_symmetric, build_scaling_rotation
+from utils import ransac
 
 class GaussianModel:
 
@@ -39,9 +39,7 @@ class GaussianModel:
         self.inverse_opacity_activation = inverse_sigmoid
         self.rotation_activation = torch.nn.functional.normalize
         self.mirror_activation = torch.sigmoid
-        
-
-        self.ransac_plane = pyrsc.Plane()
+         
 
     def __init__(self, sh_degree : int):
         self.active_sh_degree = 0
@@ -161,7 +159,7 @@ class GaussianModel:
         self.percent_dense = training_args.percent_dense
         self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
         self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
-
+         
         l = [
             {'params': [self._xyz], 'lr': training_args.position_lr_init * self.spatial_lr_scale, "name": "xyz"},
             {'params': [self._features_dc], 'lr': training_args.feature_lr, "name": "f_dc"},
@@ -171,6 +169,10 @@ class GaussianModel:
             {'params': [self._scaling], 'lr': training_args.scaling_lr, "name": "scaling"},
             {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"}, 
         ]
+
+        self.optim_lr = {
+            item["name"]:item["lr"] for item in l 
+        }
 
         self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
         self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
@@ -182,9 +184,18 @@ class GaussianModel:
         ''' Learning rate scheduling per step '''
         for param_group in self.optimizer.param_groups:
             if param_group["name"] == "xyz":
-                lr = self.xyz_scheduler_args(iteration)
-                param_group['lr'] = lr
-                return lr
+                param_group['lr'] = self.xyz_scheduler_args(iteration) 
+
+            if iteration > 10000: # only optimize mirror_opacity and opacity
+                # ["mirror_opacity", "opacity", "_features_dc", "_features_rest"]
+                if param_group["name"] not in ["mirror_opacity", "opacity", "f_dc", "f_rest"]:
+                    param_group['lr'] = 1e-10  
+
+            elif iteration > 15000: # do not optimize mirror_opacity
+                if param_group["name"] not in ["xyz", "mirror_opacity"]:
+                    param_group['lr'] = self.optim_lr[param_group["name"]]
+                
+                     
 
     def construct_list_of_attributes(self):
         l = ['x', 'y', 'z', 'nx', 'ny', 'nz']
@@ -429,29 +440,27 @@ class GaussianModel:
     def add_densification_stats(self, viewspace_point_tensor, update_filter):
         self.xyz_gradient_accum[update_filter] += torch.norm(viewspace_point_tensor.grad[update_filter], dim=-1, keepdim=True)
         self.denom[update_filter] += 1
-     
-    def compute_mirror_plane(self, min_opacity, save_mirror_path=None, ration=0.5, return_plane_err=False):
+    
+    @torch.no_grad()
+    def compute_mirror_plane(self, min_opacity, ration=0.5):
         # filter mirror points 
-        valid_points_mask = (self.get_mirror_opacity > min_opacity).squeeze()  
+        valid_points_mask = (self.get_mirror_opacity > min_opacity).squeeze() & (self.get_opacity > min_opacity).squeeze()
         mirror_xyz = self._xyz[valid_points_mask] 
-        if save_mirror_path is not None: 
-            trimesh.points.PointCloud(mirror_xyz.detach().cpu().numpy()).export(save_mirror_path)
- 
-        # compute plane parameters 
-        num_sample = int(mirror_xyz.size(0) * ration)
-        indices = torch.randperm(mirror_xyz.size(0))[:num_sample] 
-        points = mirror_xyz[indices].detach()  
-        center = points.mean(0)
-        covariance_matrix = points - center  
-        covariance_matrix = torch.matmul(covariance_matrix.transpose(0, 1), covariance_matrix)
-        eig_value, eig_vector = torch.linalg.eigh(covariance_matrix) 
-        normal = eig_vector[:, 0]  
-        a, b, c = normal[0].item(), normal[1].item(), normal[2].item() 
-        d = -torch.matmul(normal, center).item()
+          
+        # compute plane parameters  
+        # points = mirror_xyz.detach()  
+        # center = points.mean(0)
+        # covariance_matrix = points - center  
+        # covariance_matrix = torch.matmul(covariance_matrix.transpose(0, 1), covariance_matrix)
+        # eig_value, eig_vector = torch.linalg.eigh(covariance_matrix) 
+        # normal = eig_vector[:, 0]  
+        # a, b, c = normal[0].item(), normal[1].item(), normal[2].item() 
+        # d = -torch.matmul(normal, center).item()
         
-        # best_eq, _ = self.ransac_plane.fit(mirror_xyz, 0.01)
-        # a, b, c, d = best_eq[0], best_eq[1], best_eq[2], best_eq[3]
-        
+        self.mirror_equ, mirror_pts_ids = ransac.Plane(mirror_xyz.detach().cpu().numpy(), 0.01)
+         
+        # mirror_transform 
+        a, b, c, d = self.mirror_equ[0], self.mirror_equ[1], self.mirror_equ[2], self.mirror_equ[3]
         mirror_transform = np.array([
             1-2*a*a, -2*a*b, -2*a*c, -2*a*d, 
             -2*a*b, 1-2*b*b, -2*b*c, -2*b*d, 
@@ -460,12 +469,32 @@ class GaussianModel:
         ]).reshape(4, 4)
         mirror_transform = torch.as_tensor(mirror_transform, dtype=torch.float, device="cuda")
 
-        if return_plane_err: 
-            plane_error = (torch.matmul(mirror_xyz, normal) + d).abs().mean()
-            print("plane_error ", plane_error)
-            return mirror_transform, plane_error
-            
+        #  
+        # dist = ((
+        #     mirror_xyz[:, 0] * a + mirror_xyz[:, 1] * b + mirror_xyz[:, 2] * c + d 
+        #     ) / np.sqrt(a ** 2 + b ** 2 + c ** 2)).abs().detach() 
+        # outlier_mask =  dist > (dist.min() * 0.7 + dist.max() * 0.3)   
+        # self._opacity[valid_points_mask][outlier_mask] = -100  
+        # trimesh.points.PointCloud(mirror_xyz[outlier_mask.logical_not()].detach().cpu().numpy()).export("filter.ply")
+          
         return mirror_transform
+     
+    def get_plane_error(self, save_mirror_path=None, min_opacity=0.5):
+        """enforcing the mirror points close to the plane"""
+        valid_points_mask = (self.get_mirror_opacity > min_opacity).squeeze() & (self.get_opacity > min_opacity).squeeze()
+        mirror_xyz = self._xyz[valid_points_mask] 
 
+        if save_mirror_path is not None: 
+            trimesh.points.PointCloud(mirror_xyz.detach().cpu().numpy()).export(save_mirror_path)
+
+        a, b, c, d = self.mirror_equ[0], self.mirror_equ[1], self.mirror_equ[2], self.mirror_equ[3]
+        dist = ((
+            mirror_xyz[:, 0] * a + mirror_xyz[:, 1] * b + mirror_xyz[:, 2] * c + d 
+            ) / np.sqrt(a ** 2 + b ** 2 + c ** 2)).abs() 
+         
+        # outlier_mask =  dist > (dist.min() * 0.7 + dist.max() * 0.3)  
+        # self._opacity[valid_points_mask][outlier_mask.detach()] *= -100  
+         
+        return dist
 
         

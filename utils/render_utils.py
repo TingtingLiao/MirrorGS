@@ -191,7 +191,7 @@ def generate_path(viewpoint_cameras, n_frames=480):
       cam.camera_center = cam.world_view_transform.inverse()[3, :3]
       traj.append(cam)
 
-  return traj
+  return traj 
 
 def load_img(pth: str) -> np.ndarray:
   """Load an image and cast to float32."""

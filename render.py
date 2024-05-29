@@ -73,8 +73,8 @@ if __name__ == "__main__":
         print("render videos ...")
         traj_dir = os.path.join(args.model_path, 'traj', "ours_{}".format(scene.loaded_iter))
         os.makedirs(traj_dir, exist_ok=True)
-        n_fames = 360
-        cam_traj = generate_path(scene.getTrainCameras(), n_frames=n_fames)
+        n_fames = 240
+        cam_traj = generate_path(scene.getTrainCameras()[-100:], n_frames=n_fames)
         gaussExtractor.reconstruction(cam_traj)
         gaussExtractor.export_image(traj_dir)
         create_videos(base_dir=traj_dir, input_dir=traj_dir, out_name='render_traj', num_frames=n_fames)
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         print("export mesh ...")
         os.makedirs(train_dir, exist_ok=True)
         # set the active_sh to 0 to export only diffuse texture
-        gaussExtractor.gaussians.active_sh_degree = 0
+        gaussExtractor.gaussians.active_sh_degree = 4
         gaussExtractor.reconstruction(scene.getTrainCameras())
         # extract the mesh and save
         if args.unbounded:

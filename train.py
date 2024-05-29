@@ -44,6 +44,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             gaussians.restore(model_params, opt)
  
     gaussians.training_setup(opt)
+    
      
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0] 
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda") 
@@ -68,7 +69,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gaussians.update_learning_rate(iteration)
 
         # Every 1000 its we increase the levels of SH up to a maximum degree
-        if iteration % 1000 == 0:
+        if iteration % 5000 == 0:
             gaussians.oneupSHdegree()
 
         # Pick a random Camera
@@ -79,36 +80,38 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_mirror_mask = viewpoint_cam.gt_alpha_mask.expand_as(gt_image) 
         gt_image_wo_mirror = gt_image * (1 - gt_mirror_mask) + gt_mirror_mask * mirror_color 
 
-        render_pkg = render(viewpoint_cam, gaussians, pipe, background, render_mirror_mask=True)
+        render_pkg = render(viewpoint_cam, gaussians, pipe, background, render_mirror_mask=True) 
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
         mirror_mask = render_pkg["mirror_mask"] 
         rend_dist = render_pkg["rend_dist"]
         rend_normal  = render_pkg['rend_normal']
-        surf_normal = render_pkg['surf_normal']
+        surf_normal = render_pkg['surf_normal'] 
+        image_wo_mirror = image * (1- gt_mirror_mask) + gt_mirror_mask * mirror_color 
 
-        image_wo_mirror = image * (1- gt_mirror_mask) + gt_mirror_mask * mirror_color
+        # image_rm_mirror = render(viewpoint_cam, gaussians, pipe, background, render_mirror_mask=True, remove_mirror=True)["render"]
 
-        # after stage2: compute mirror plane 
         # if iteration == int(opt.iterations * 0.5):
         plane_loss = torch.tensor([0.0]).cuda()
-        if 10000 > iteration and iteration > 5000 and iteration % 10 == 0: 
-            mirror_transform, plane_loss = gaussians.compute_mirror_plane(min_opacity=0.5, save_mirror_path=f'{scene.model_path}/mirror.ply')
-            plane_loss = plane_loss * 0.1 
+        # if 10000 > iteration and iteration > 5000 and iteration % 10 == 0: 
+        if iteration == 10000: 
+            mirror_transform = gaussians.compute_mirror_plane(min_opacity=0.5) 
 
         # stage2: fuse image 
-        if iteration / opt.iterations > 0.5 and viewpoint_cam.gt_alpha_mask.sum() > 0:
+        if iteration > 10000 and viewpoint_cam.gt_alpha_mask.sum() > 0:
+            os.makedirs(f"{scene.model_path}/mirror", exist_ok=True)
             mirror_render_pkg = render(viewpoint_cam, gaussians, pipe, background, mirror_transform=mirror_transform)
             mirror_image = mirror_render_pkg["render"]  
-            merge_image = image * (1 - gt_mirror_mask.expand_as(gt_image)) + mirror_image * gt_mirror_mask.expand_as(gt_image)
+            merge_image = image * (1 - gt_mirror_mask) + mirror_image * gt_mirror_mask
             
             if iteration % 100 == 0: 
                 vis_image = torch.cat([gt_image, image, mirror_image, merge_image], dim=-1).clamp(0.0, 1.0).permute(1, 2, 0).detach().cpu().numpy()*255     
-                os.makedirs(f"{scene.model_path}/mirror", exist_ok=True)
                 Image.fromarray(vis_image.astype(np.uint8)).save(f"{scene.model_path}/mirror/{iteration:04d}.png")   
-            # Image.fromarray(vis_image.astype(np.uint8)).save("test.png")                       
+                             
             image = merge_image
+            plane_loss = gaussians.get_plane_error(save_mirror_path=f"{scene.model_path}/mirror/{iteration:04d}.ply") 
+            plane_loss = plane_loss.mean()
 
-        # image loss for no mirror area 
+        # image loss 
         Ll1 = l1_loss(image_wo_mirror, gt_image_wo_mirror)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image_wo_mirror, gt_image_wo_mirror))
         
@@ -167,12 +170,13 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 scene.save(iteration)
  
             # Densification
-            if iteration < opt.densify_until_iter:
+            if opt.densify_from_iter < iteration < opt.densify_until_iter:
                 gaussians.max_radii2D[visibility_filter] = torch.max(gaussians.max_radii2D[visibility_filter], radii[visibility_filter])
                 gaussians.add_densification_stats(viewspace_point_tensor, visibility_filter)
 
                 if iteration > opt.densify_from_iter and iteration % opt.densification_interval == 0:
-                    size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    # size_threshold = 20 if iteration > opt.opacity_reset_interval else None
+                    size_threshold = None 
                     gaussians.densify_and_prune(opt.densify_grad_threshold, opt.opacity_cull, scene.cameras_extent, size_threshold)
                 
                 if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):

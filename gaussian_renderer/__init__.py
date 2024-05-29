@@ -16,7 +16,8 @@ from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
 from utils.point_utils import depth_to_normal
 
-def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, scaling_modifier=1.0, override_color=None, mirror_transform=None, render_mirror_mask=False):
+def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, scaling_modifier=1.0, override_color=None, 
+mirror_transform=None, render_mirror_mask=False, remove_mirror=False):
     """
     Render the scene. 
     
@@ -69,7 +70,7 @@ def render(viewpoint_camera, pc: GaussianModel, pipe, bg_color: torch.Tensor, sc
     means2D = screenspace_points
     opacity = pc.get_opacity
 
-    if mirror_transform is not None: 
+    if mirror_transform is not None or remove_mirror: 
         opacity = opacity * (1 - pc.get_mirror_opacity) 
         # opacity = opacity * (pc.get_mirror_opacity < 0.5)
  

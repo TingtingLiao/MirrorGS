@@ -30,13 +30,13 @@ pip install -e submodules/simple-knn
 
 ## Usage 
 ```bash   
-python train.py -s data/colmap/real/discussion_room/  --resolution 4 --iterations 20000
+python train.py -s data/colmap/real/discussion_room/  --resolution 4 
   
 # validation 
-python render.py -m ./output/dfaf0f54-8 -s data/colmap/real/discussion_room/ --skip_mesh --render_path --resolution 4
+python render.py -m ./output/{your_path} -s data/colmap/real/discussion_room/ --skip_mesh --resolution 4
 ```
 
-## Implementation Notes
+<!-- ## Implementation Notes -->
 
 <!-- ### Mirror Plane
 For any point $p = (x, y, z)^⊤$ on the plane satisfies:
