@@ -3,8 +3,8 @@ An unofficial implementation of [**Mirror3DGS: Incorporating Mirror Reflections
 into 3D Gaussian Splatting**](https://arxiv.org/pdf/2404.01168).  
  
 
-https://github.com/TingtingLiao/MirrorGS/assets/45743512/6b262e40-3681-43fa-b23d-e5f6a47d517f
- 
+https://github.com/TingtingLiao/MirrorGS/assets/45743512/b31d3a28-24fa-4389-8d9a-4d246feb6778
+
 
 ## Install
 ```bash

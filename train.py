@@ -86,7 +86,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         rend_dist = render_pkg["rend_dist"]
         rend_normal  = render_pkg['rend_normal']
         surf_normal = render_pkg['surf_normal'] 
-        image_wo_mirror = image * (1- gt_mirror_mask) + gt_mirror_mask * mirror_color 
+        # image_wo_mirror = image * (1- gt_mirror_mask) + gt_mirror_mask * mirror_color 
 
         # image_rm_mirror = render(viewpoint_cam, gaussians, pipe, background, render_mirror_mask=True, remove_mirror=True)["render"]
 
@@ -112,8 +112,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             plane_loss = plane_loss.mean()
 
         # image loss 
-        Ll1 = l1_loss(image_wo_mirror, gt_image_wo_mirror)
-        loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image_wo_mirror, gt_image_wo_mirror))
+        # Ll1 = l1_loss(image_wo_mirror, gt_image_wo_mirror)
+        # loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image_wo_mirror, gt_image_wo_mirror))
+        Ll1 = l1_loss(image, gt_image)
+        loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         
         # mirror mask loss  
         mirror_mask_loss = opt.lambda_mask * l1_loss(mirror_mask, gt_mirror_mask) 
