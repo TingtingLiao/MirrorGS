@@ -7,6 +7,10 @@ https://github.com/TingtingLiao/MirrorGS/assets/45743512/b31d3a28-24fa-4389-8d9a
 
 https://github.com/TingtingLiao/MirrorGS/assets/45743512/92f96bba-f382-4a73-9a4d-ba97c26ec863
 
+## Implementation Notes
+
+You can find detailed explainations from this [blog](https://tingtingliao.github.io/blog/2024/MirrorGS/). 
+  
 ## Install
 ```bash
 git clone --recursive https://github.com/TingtingLiao/MirrorGS.git 
@@ -35,10 +39,7 @@ python train.py -s data/colmap/real/discussion_room/  --resolution 4
 python render.py -m ./output/{your_path} -s data/colmap/real/discussion_room/ --skip_mesh --resolution 4
 ```
 
-## Implementation Notes
-
-I wrote a [blog](https://tingtingliao.github.io/blog/2024/MirrorGS/) where you can find detailed explainations. 
-  
+ 
 
 ## Acknowledgement 
 Special thanks to the projects and their contributors:
