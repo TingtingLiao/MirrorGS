@@ -5,6 +5,7 @@ into 3D Gaussian Splatting**](https://arxiv.org/pdf/2404.01168).
 
 https://github.com/TingtingLiao/MirrorGS/assets/45743512/b31d3a28-24fa-4389-8d9a-4d246feb6778
 
+https://github.com/TingtingLiao/MirrorGS/assets/45743512/92f96bba-f382-4a73-9a4d-ba97c26ec863
 
 ## Install
 ```bash
