@@ -31,17 +31,17 @@ pip install -e submodules/simple-knn
 ``` 
 
 ## Data
-Download data from [here](). 
+We provide an example. Please download it from [here](https://huggingface.co/datasets/Luffuly/mirrorgs/tree/main). 
  
-For customized data, following the below scripts
-```bash  
-# mirror segmentation 
-python process.py --video_path {}
-``` 
-Please install colmap 
-``` bash
-# run colmap 
-colmap automatic_reconstructor --workspace_path data/real/market  --image_path data/real/market/images --camera_model SIMPLE_PINHOLE 
+For customized data, the following steps are required:
+
+![output](https://github.com/TingtingLiao/MirrorGS/assets/45743512/aadc9422-0ee5-4bf4-8b54-cffa8f03fb7d)
+
+- mirror segmention 
+- remove the mirror area (the right image), then run colmap 
+
+```bash    
+colmap automatic_reconstructor --workspace_path data/{}  --image_path data/{}/images --camera_model SIMPLE_PINHOLE 
 ``` 
 
 ## Usage 
@@ -49,7 +49,7 @@ colmap automatic_reconstructor --workspace_path data/real/market  --image_path d
 python train.py -s data/{}   
   
 # validation 
-python render.py -m ./output/{your_path} -s data/real/discussion_room/ --skip_mesh  
+python render.py -m ./output/{your_path} -s data/{} --skip_mesh  
 ```
  
 
