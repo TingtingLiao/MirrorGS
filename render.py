@@ -67,14 +67,13 @@ if __name__ == "__main__":
         os.makedirs(test_dir, exist_ok=True)
         gaussExtractor.reconstruction(scene.getTestCameras())
         gaussExtractor.export_image(test_dir)
-    
      
     if args.render_path:
         print("render videos ...")
         traj_dir = os.path.join(args.model_path, 'traj', "ours_{}".format(scene.loaded_iter))
         os.makedirs(traj_dir, exist_ok=True)
         n_fames = 240
-        cam_traj = generate_path(scene.getTrainCameras()[-100:], n_frames=n_fames)
+        cam_traj = generate_path(scene.getTrainCameras(), n_frames=n_fames)
         gaussExtractor.reconstruction(cam_traj)
         gaussExtractor.export_image(traj_dir)
         create_videos(base_dir=traj_dir, input_dir=traj_dir, out_name='render_traj', num_frames=n_fames)

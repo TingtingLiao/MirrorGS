@@ -48,7 +48,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
      
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0] 
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda") 
-    mirror_color = torch.tensor([1,0,0], dtype=torch.float32, device="cuda").reshape(3, 1, 1) 
+    mirror_color = torch.tensor([0,0,1], dtype=torch.float32, device="cuda").reshape(3, 1, 1) 
 
     iter_start = torch.cuda.Event(enable_timing = True)
     iter_end = torch.cuda.Event(enable_timing = True)
@@ -86,39 +86,26 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         rend_dist = render_pkg["rend_dist"]
         rend_normal  = render_pkg['rend_normal']
         surf_normal = render_pkg['surf_normal'] 
-        # image_wo_mirror = image * (1- gt_mirror_mask) + gt_mirror_mask * mirror_color 
-
-        # image_rm_mirror = render(viewpoint_cam, gaussians, pipe, background, render_mirror_mask=True, remove_mirror=True)["render"]
-
-        # if iteration == int(opt.iterations * 0.5):
+ 
         plane_loss = torch.tensor([0.0]).cuda()
-        # if 10000 > iteration and iteration > 5000 and iteration % 10 == 0: 
         if iteration == 10000: 
-            mirror_transform = gaussians.compute_mirror_plane(min_opacity=0.5) 
+            mirror_transform = gaussians.compute_mirror_plane(min_opacity=0.5, sansac_threshold=opt.sansac_threshold) 
 
-        # stage2: fuse image 
-        if iteration > 10000 and viewpoint_cam.gt_alpha_mask.sum() > 0:
+        Ll1 = l1_loss(image, gt_image_wo_mirror)
+        loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image_wo_mirror))
+
+        if iteration > 10000 and viewpoint_cam.gt_alpha_mask.sum() > 0: # stage2: fuse image 
             os.makedirs(f"{scene.model_path}/mirror", exist_ok=True)
             mirror_render_pkg = render(viewpoint_cam, gaussians, pipe, background, mirror_transform=mirror_transform)
             mirror_image = mirror_render_pkg["render"]  
-            merge_image = image * (1 - gt_mirror_mask) + mirror_image * gt_mirror_mask
-            
-            if iteration % 100 == 0: 
-                vis_image = torch.cat([gt_image, image, mirror_image, merge_image], dim=-1).clamp(0.0, 1.0).permute(1, 2, 0).detach().cpu().numpy()*255     
-                Image.fromarray(vis_image.astype(np.uint8)).save(f"{scene.model_path}/mirror/{iteration:04d}.png")   
-                             
-            image = merge_image
-            plane_loss = gaussians.get_plane_error(save_mirror_path=f"{scene.model_path}/mirror/{iteration:04d}.ply") 
-            plane_loss = plane_loss.mean()
-
-        # image loss 
-        # Ll1 = l1_loss(image_wo_mirror, gt_image_wo_mirror)
-        # loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image_wo_mirror, gt_image_wo_mirror))
-        Ll1 = l1_loss(image, gt_image)
-        loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
-        
+            image = image * (1 - gt_mirror_mask) + mirror_image * gt_mirror_mask
+              
+            plane_loss = gaussians.get_plane_error(save_mirror_path=f"{scene.model_path}/mirror/{iteration:04d}.ply").mean() 
+ 
+            loss += opt.lambda_mirrimg * l1_loss(mirror_image * gt_mirror_mask, gt_image * gt_mirror_mask)
+ 
         # mirror mask loss  
-        mirror_mask_loss = opt.lambda_mask * l1_loss(mirror_mask, gt_mirror_mask) 
+        mirror_loss = opt.lambda_mirrmsk * l1_loss(mirror_mask, gt_mirror_mask) 
  
         # normal regularization
         lambda_normal = opt.lambda_normal if iteration > 7000 else 0.0
@@ -128,7 +115,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         dist_loss = lambda_dist * rend_dist.mean()
  
         # loss  
-        total_loss = loss + dist_loss + normal_loss + mirror_mask_loss + plane_loss
+        total_loss = loss + dist_loss + normal_loss + mirror_loss  
         total_loss.backward()
         iter_end.record()
  
@@ -143,7 +130,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             ema_dist_for_log = 0.4 * dist_loss.item() + 0.6 * ema_dist_for_log
             ema_normal_for_log = 0.4 * normal_loss.item() + 0.6 * ema_normal_for_log
-            ema_mirror_mask_for_log = 0.4 * mirror_mask_loss.item() + 0.6 * ema_mirror_mask_for_log
+            ema_mirror_mask_for_log = 0.4 * mirror_loss.item() + 0.6 * ema_mirror_mask_for_log
             ema_mirror_plane_for_log = 0.4 * plane_loss.item() + 0.6 * ema_mirror_plane_for_log
 
             if iteration % 10 == 0:

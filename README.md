@@ -41,7 +41,7 @@ For customized data, the following steps are required:
 - remove the mirror area (the right image), then run colmap 
 
 ```bash    
-colmap automatic_reconstructor --workspace_path data/{}  --image_path data/{}/images --camera_model SIMPLE_PINHOLE 
+colmap automatic_reconstructor --workspace_path data/{}  --image_path data/{}/images --camera_model SIMPLE_PINHOLE  
 ``` 
 
 ## Usage 
@@ -51,8 +51,7 @@ python train.py -s data/{}
 # validation 
 python render.py -m ./output/{your_path} -s data/{} --skip_mesh  
 ```
- 
-
+  
 ## Acknowledgement 
 Special thanks to the projects and their contributors:
 * [Mirror3DGS](https://arxiv.org/pdf/2404.01168) 

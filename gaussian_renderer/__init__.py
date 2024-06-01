@@ -40,11 +40,6 @@ mirror_transform=None, render_mirror_mask=False, remove_mirror=False):
     campos = viewpoint_camera.camera_center 
 
     if mirror_transform is not None:
-        # viewmatrix = torch.matmul(w2c, mirror_transform).transpose(0, 1)
-        # c2w = w2c.inverse() # P_o   
-        # viewmatrix = torch.matmul(mirror_transform, c2w).inverse().transpose(0, 1)
-        # viewmatrix = torch.matmul(mirror_transform, w2c).transpose(0, 1) 
-         
         w2c = viewmatrix.transpose(0, 1) # Q_o  
         viewmatrix = torch.matmul(w2c, mirror_transform.inverse()).transpose(0, 1) 
         projmatrix = (viewmatrix.unsqueeze(0).bmm(viewpoint_camera.projection_matrix.unsqueeze(0))).squeeze(0)
@@ -138,6 +133,17 @@ mirror_transform=None, render_mirror_mask=False, remove_mirror=False):
             rotations = rotations,
             cov3D_precomp = cov3D_precomp
         )  
+        # mirror_img, _, mirror_allmap = rasterizer(
+        #     means3D = means3D,
+        #     means2D = means2D,
+        #     shs = shs,
+        #     colors_precomp = colors_precomp,
+        #     opacities = opacity * pc.get_mirror_opacity,
+        #     scales = scales,
+        #     rotations = rotations,
+        #     cov3D_precomp = cov3D_precomp
+        # )  
+        # rets["mirror_image"] = mirror_img
         rets["mirror_mask"] = mirror_mask
         
     # additional regularizations

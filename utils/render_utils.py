@@ -191,18 +191,20 @@ def generate_path(viewpoint_cameras, n_frames=480):
       cam.camera_center = cam.world_view_transform.inverse()[3, :3]
       traj.append(cam)
 
-  return traj 
+  return traj[140:] + traj[:20] 
+  # return traj
 
 def load_img(pth: str) -> np.ndarray:
   """Load an image and cast to float32."""
   with open(pth, 'rb') as f:
     image = np.array(Image.open(f), dtype=np.float32)
-  return image
+  return image 
 
 
-def create_videos(base_dir, input_dir, out_name, num_frames=480):
+def create_videos(base_dir, input_dir, out_name, num_frames):
   """Creates videos out of the images saved to disk."""
   # Last two parts of checkpoint path are experiment name and scene name.
+  num_frames = num_frames - 120
   video_prefix = f'{out_name}'
 
   zpad = max(5, len(str(num_frames - 1)))

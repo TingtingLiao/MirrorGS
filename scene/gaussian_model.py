@@ -186,14 +186,14 @@ class GaussianModel:
             if param_group["name"] == "xyz":
                 param_group['lr'] = self.xyz_scheduler_args(iteration) 
 
-            if iteration > 10000: # only optimize mirror_opacity and opacity
-                # ["mirror_opacity", "opacity", "_features_dc", "_features_rest"]
-                if param_group["name"] not in ["mirror_opacity", "opacity", "f_dc", "f_rest"]:
-                    param_group['lr'] = 1e-10  
+            # if iteration > 10000: # only optimize mirror_opacity and opacity
+            #     # ["mirror_opacity", "opacity", "_features_dc", "_features_rest"]
+            #     if param_group["name"] not in ["mirror_opacity", "opacity", "f_dc", "f_rest"]:
+            #         param_group['lr'] = 1e-10  
 
-            elif iteration > 15000: # do not optimize mirror_opacity
-                if param_group["name"] not in ["xyz", "mirror_opacity"]:
-                    param_group['lr'] = self.optim_lr[param_group["name"]]
+            # elif iteration > 15000: # do not optimize mirror_opacity
+            #     if param_group["name"] not in ["xyz", "mirror_opacity"]:
+            #         param_group['lr'] = self.optim_lr[param_group["name"]]
                 
                      
 
@@ -442,7 +442,7 @@ class GaussianModel:
         self.denom[update_filter] += 1
     
     @torch.no_grad()
-    def compute_mirror_plane(self, min_opacity, ration=0.5):
+    def compute_mirror_plane(self, min_opacity, sansac_threshold=0.01):
         # filter mirror points 
         valid_points_mask = (self.get_mirror_opacity > min_opacity).squeeze() & (self.get_opacity > min_opacity).squeeze()
         mirror_xyz = self._xyz[valid_points_mask] 
@@ -457,7 +457,7 @@ class GaussianModel:
         # a, b, c = normal[0].item(), normal[1].item(), normal[2].item() 
         # d = -torch.matmul(normal, center).item()
         
-        self.mirror_equ, mirror_pts_ids = ransac.Plane(mirror_xyz.detach().cpu().numpy(), 0.01)
+        self.mirror_equ, mirror_pts_ids = ransac.Plane(mirror_xyz.detach().cpu().numpy(), sansac_threshold)
          
         # mirror_transform 
         a, b, c, d = self.mirror_equ[0], self.mirror_equ[1], self.mirror_equ[2], self.mirror_equ[3]
