@@ -132,18 +132,7 @@ mirror_transform=None, render_mirror_mask=False, remove_mirror=False):
             scales = scales,
             rotations = rotations,
             cov3D_precomp = cov3D_precomp
-        )  
-        # mirror_img, _, mirror_allmap = rasterizer(
-        #     means3D = means3D,
-        #     means2D = means2D,
-        #     shs = shs,
-        #     colors_precomp = colors_precomp,
-        #     opacities = opacity * pc.get_mirror_opacity,
-        #     scales = scales,
-        #     rotations = rotations,
-        #     cov3D_precomp = cov3D_precomp
-        # )  
-        # rets["mirror_image"] = mirror_img
+        )   
         rets["mirror_mask"] = mirror_mask
         
     # additional regularizations
