@@ -31,7 +31,7 @@ pip install -e submodules/simple-knn
 ``` 
 
 ## Data
-We provide an example. Please download it from [here](https://huggingface.co/datasets/Luffuly/mirrorgs/tree/main). 
+We provide an example. Please download it from [here](https://drive.google.com/file/d/1XTgvua2WPXJZmGPhJXGaIMHhaAl-cPBZ/view?usp=sharing). 
  
 For customized data, the following steps are required:
 
